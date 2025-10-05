@@ -577,7 +577,7 @@ const calcularColumnas = (acts) => {
             <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl shadow-lg p-4 border-2 border-blue-300">
               <h3 className="text-sm font-bold text-sky-700 mb-3 flex items-center gap-2">
                 <StickyNote size={18} className="text-sky-600" />
-                Próximos Eventos
+                Próximas Actividades
               </h3>
               <div className="space-y-2">
                 {proximos.length > 0 ? proximos.map(act => {
