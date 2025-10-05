@@ -416,8 +416,10 @@ const calcularColumnas = (acts) => {
                                 return (
                                   <div
                                     key={act.id}
-                                    className={`absolute bg-gradient-to-r ${cat.gradient} rounded-lg p-2 text-white shadow-lg cursor-pointer hover:scale-105 transition-all overflow-hidden border border-white/20 backdrop-blur-sm ${
-                                      act.completada ? 'opacity-50' : ''
+                                    className={`absolute rounded-lg p-2 text-white shadow-lg cursor-pointer hover:scale-105 transition-all overflow-hidden backdrop-blur-sm ${
+                                      act.completada 
+                                        ? 'bg-gradient-to-br from-green-100 to-green-200 border-2 border-green-300 text-green-700' 
+                                        : `bg-gradient-to-r ${cat.gradient} border border-white/20`
                                     }`}
                                     style={{ 
                                       top: `${top}px`, 
@@ -429,8 +431,8 @@ const calcularColumnas = (acts) => {
                                     onClick={() => abrirModal(act)}
                                   >
                                     <div className="flex flex-col items-center justify-center h-full max-h-full overflow-y-auto p-0.5">
-                                      <div className="font-semibold text-xs leading-tight text-center w-full">{act.titulo}</div>
-                                      <div className="text-xs font-medium opacity-90 text-center w-full">{act.horaInicio.substring(0, 5)}</div>
+                                      <div className={`font-semibold text-xs leading-tight text-center w-full ${act.completada ? 'text-green-700' : 'text-white'}`}>{act.titulo}</div>
+                                      <div className={`text-xs font-medium text-center w-full ${act.completada ? 'text-green-600' : 'text-white/90'}`}>{act.horaInicio.substring(0, 5)}</div>
                                     </div>
                                   </div>
                                 );
@@ -476,15 +478,17 @@ const calcularColumnas = (acts) => {
                           return (
                             <div
                               key={act.id}
-                              className={`absolute left-1 right-1 bg-gradient-to-r ${cat.gradient} rounded-lg p-2 text-white shadow-lg cursor-pointer hover:scale-105 transition-all overflow-hidden ${
-                                act.completada ? 'opacity-60' : ''
+                              className={`absolute left-1 right-1 rounded-lg p-2 shadow-lg cursor-pointer hover:scale-105 transition-all overflow-hidden ${
+                                act.completada 
+                                  ? 'bg-gradient-to-br from-green-100 to-green-200 border-2 border-green-300 text-green-700' 
+                                  : `bg-gradient-to-r ${cat.gradient} text-white`
                               }`}
                               style={{ top: `${top}px`, height: `${height}px`, minHeight: '40px' }}
                               onClick={() => abrirModal(act)}
                             >
                               <div className="flex flex-col items-center justify-center h-full max-h-full overflow-y-auto p-0.5">
-                                <div className="font-semibold text-xs text-center w-full">{act.titulo}</div>
-                                <div className="text-xs font-medium opacity-90 text-center w-full">
+                                <div className={`font-semibold text-xs text-center w-full ${act.completada ? 'text-green-700' : 'text-white'}`}>{act.titulo}</div>
+                                <div className={`text-xs font-medium text-center w-full ${act.completada ? 'text-green-600' : 'text-white/90'}`}>
                                   {act.horaInicio.substring(0, 5)} - {act.horaFin.substring(0, 5)}
                                 </div>
                               </div>
