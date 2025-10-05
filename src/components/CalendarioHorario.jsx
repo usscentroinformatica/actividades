@@ -96,20 +96,26 @@ export default function CalendarioHorario() {
 
   const proximosEventos = () => {
     const ahora = new Date();
+    const horaActual = ahora.getHours();
+    const minutosActual = ahora.getMinutes();
+    const fechaHoyStr = ahora.toISOString().split('T')[0];
+
     return actividades
       .filter(act => {
-        const fechaAct = new Date(act.fecha);
-        const [horas, minutos] = act.horaInicio.split(':').map(Number);
-        fechaAct.setHours(horas, minutos, 0, 0);
-        
-        // Si es el mismo día, compara la hora
-        if (fechaAct.toDateString() === ahora.toDateString()) {
-          return (horas > ahora.getHours() || 
-                 (horas === ahora.getHours() && minutos > ahora.getMinutes())) && 
-                 !act.completada;
+        if (act.completada) return false;
+
+        // Si la fecha es anterior a hoy, no la incluimos
+        if (act.fecha < fechaHoyStr) return false;
+
+        // Si es hoy, comparamos la hora
+        if (act.fecha === fechaHoyStr) {
+          const [horas, minutos] = act.horaInicio.split(':').map(Number);
+          return horas > horaActual || 
+                (horas === horaActual && minutos > minutosActual);
         }
-        // Si es otro día, compara la fecha completa
-        return fechaAct > ahora && !act.completada;
+
+        // Si es una fecha futura, la incluimos
+        return true;
       })
       .sort((a, b) => {
         const fechaA = new Date(a.fecha);
@@ -423,7 +429,7 @@ const calcularColumnas = (acts) => {
                                     onClick={() => abrirModal(act)}
                                   >
                                     <div className="flex flex-col items-center justify-center h-full max-h-full overflow-y-auto p-0.5">
-                                      <div className="font-semibold text-sm leading-tight text-center w-full">{act.titulo}</div>
+                                      <div className="font-semibold text-xs leading-tight text-center w-full">{act.titulo}</div>
                                       <div className="text-xs font-medium opacity-90 text-center w-full">{act.horaInicio.substring(0, 5)}</div>
                                     </div>
                                   </div>
@@ -477,7 +483,7 @@ const calcularColumnas = (acts) => {
                               onClick={() => abrirModal(act)}
                             >
                               <div className="flex flex-col items-center justify-center h-full max-h-full overflow-y-auto p-0.5">
-                                <div className="font-semibold text-sm text-center w-full">{act.titulo}</div>
+                                <div className="font-semibold text-xs text-center w-full">{act.titulo}</div>
                                 <div className="text-xs font-medium opacity-90 text-center w-full">
                                   {act.horaInicio.substring(0, 5)} - {act.horaFin.substring(0, 5)}
                                 </div>
