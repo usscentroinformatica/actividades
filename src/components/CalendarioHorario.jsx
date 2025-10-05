@@ -582,7 +582,17 @@ const calcularColumnas = (acts) => {
                   return (
                     <div key={act.id} className={`bg-gradient-to-r from-sky-50 to-white rounded-lg p-2 border ${cat.color} shadow-md hover:shadow-lg transition-all`}>
                       <p className="text-sm font-semibold text-sky-900 truncate text-center">{act.titulo}</p>
-                      <p className="text-xs text-sky-700/70 text-center">{new Date(act.fecha).toLocaleDateString('es-ES')} • {act.horaInicio}</p>
+                      <p className="text-xs text-sky-700/70 text-center">
+                        {(() => {
+                          const fecha = new Date(act.fecha + 'T00:00:00');
+                          return fecha.toLocaleDateString('es-ES', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          });
+                        })()} • {act.horaInicio}
+                      </p>
                     </div>
                   );
                 }) : (
