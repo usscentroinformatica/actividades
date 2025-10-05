@@ -302,7 +302,6 @@ const calcularColumnas = (acts) => {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-700 to-blue-800 bg-clip-text text-transparent">
   Mi Calendario Personal
 </h1>
-<p className="text-sm text-gray-600">Gestiona todas las actividades 📅</p>
             </div>
             
             <div className="flex items-center gap-2">
