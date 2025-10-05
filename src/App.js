@@ -1,25 +1,33 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect } from 'react';
+import Login from './components/Login';
+import CalendarioHorario from './components/CalendarioHorario';
+import { guardarUsuario, obtenerUsuario, cerrarSesion } from './services/activityService';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const usuarioGuardado = obtenerUsuario();
+    if (usuarioGuardado) {
+      setUsuario(usuarioGuardado.nombre);
+    }
+  }, []);
+
+  const handleLogin = (nombre) => {
+    guardarUsuario(nombre);
+    setUsuario(nombre);
+  };
+
+  const handleLogout = () => {
+    cerrarSesion();
+    setUsuario(null);
+  };
+
+  if (!usuario) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  return <CalendarioHorario usuario={usuario} onLogout={handleLogout} />;
 }
 
 export default App;
