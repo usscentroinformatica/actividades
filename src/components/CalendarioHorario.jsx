@@ -14,7 +14,7 @@ const CATEGORIAS = [
   { id: 'otro', nombre: 'Otro', color: 'bg-gray-500', gradient: 'from-gray-500 to-gray-600' }
 ];
 
-// AGREGA ESTA FUNCIÓN AQUÍ 👇
+// Función para obtener la categoría
 const obtenerCategoria = (categoriaId) => {
   return CATEGORIAS.find(c => c.id === categoriaId) || CATEGORIAS[0];
 };
@@ -23,45 +23,48 @@ const HORAS = Array.from({ length: 17 }, (_, i) => i + 6);
 
 export default function CalendarioHorario() {
   const [vista, setVista] = useState('semana');
-  const [fechaActual, setFechaActual] = useState(new Date());
+  const [fechaActual, setFechaActual] = useState(new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' })));
   const [actividades, setActividades] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [actividadEditando, setActividadEditando] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [formData, setFormData] = useState({
-  usuario: '',
-  titulo: '',
-  descripcion: '',
-  fecha: '',
-  horaInicio: '08:00',
-  horaFin: '09:00',
-  categoria: 'trabajo',
-  completada: false
-});
+    usuario: '',
+    titulo: '',
+    descripcion: '',
+    fecha: '',
+    horaInicio: '08:00',
+    horaFin: '09:00',
+    categoria: 'trabajo',
+    completada: false
+  });
 
   useEffect(() => {
-  const cargarActividadesFirebase = async () => {
-    setCargando(true);
-    try {
-      // Cargar TODAS las actividades de Firebase (sin filtrar por usuario)
-      const q = query(collection(db, 'actividades'));
-      const snapshot = await getDocs(q);
-      const acts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setActividades(acts);
-    } catch (error) {
-      console.error('Error al cargar actividades:', error);
-      setActividades([]);
-    } finally {
-      setCargando(false);
-    }
-  };
+    const cargarActividadesFirebase = async () => {
+      setCargando(true);
+      try {
+        // Cargar TODAS las actividades de Firebase (sin filtrar por usuario)
+        const q = query(collection(db, 'actividades'));
+        const snapshot = await getDocs(q);
+        const acts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setActividades(acts);
+      } catch (error) {
+        console.error('Error al cargar actividades:', error);
+        setActividades([]);
+      } finally {
+        setCargando(false);
+      }
+    };
 
-  cargarActividadesFirebase();
-}, []); // Sin dependencia de usuario
+    cargarActividadesFirebase();
+  }, []); // Sin dependencia de usuario
 
   const obtenerDiasSemana = () => {
     const inicio = new Date(fechaActual);
-    inicio.setDate(fechaActual.getDate() - fechaActual.getDay());
+    // Ajustar al domingo de la semana actual
+    const diaSemana = inicio.getDay();
+    inicio.setDate(inicio.getDate() - diaSemana);
+    
     return Array.from({ length: 7 }, (_, i) => {
       const dia = new Date(inicio);
       dia.setDate(inicio.getDate() + i);
@@ -72,10 +75,22 @@ export default function CalendarioHorario() {
   const calcularResumen = () => {
     const inicio = obtenerDiasSemana()[0];
     const fin = obtenerDiasSemana()[6];
+    
+    // Formatear fechas correctamente para comparación
+    const yearInicio = inicio.getFullYear();
+    const monthInicio = String(inicio.getMonth() + 1).padStart(2, '0');
+    const dayInicio = String(inicio.getDate()).padStart(2, '0');
+    const fechaInicio = `${yearInicio}-${monthInicio}-${dayInicio}`;
+    
+    const yearFin = fin.getFullYear();
+    const monthFin = String(fin.getMonth() + 1).padStart(2, '0');
+    const dayFin = String(fin.getDate()).padStart(2, '0');
+    const fechaFin = `${yearFin}-${monthFin}-${dayFin}`;
+    
     const actsSemana = actividades.filter(act => {
-      const fecha = new Date(act.fecha);
-      return fecha >= inicio && fecha <= fin;
+      return act.fecha >= fechaInicio && act.fecha <= fechaFin;
     });
+    
     return {
       total: actsSemana.length,
       completadas: actsSemana.filter(a => a.completada).length,
@@ -84,8 +99,14 @@ export default function CalendarioHorario() {
   };
 
   const actividadesHoy = () => {
-    const hoy = new Date().toISOString().split('T')[0];
-    return actividades.filter(act => act.fecha === hoy);
+    // Obtener fecha actual en zona horaria local
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${year}-${month}-${day}`;
+    
+    return actividades.filter(act => act.fecha === fechaHoy);
   };
 
   const actividadesUrgentes = () => {
@@ -95,27 +116,16 @@ export default function CalendarioHorario() {
   };
 
   const proximosEventos = () => {
-    const ahora = new Date();
-    const horaActual = ahora.getHours();
-    const minutosActual = ahora.getMinutes();
-    const fechaHoyStr = ahora.toISOString().split('T')[0];
-
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaHoy = hoy.toISOString().split('T')[0];
+    
     return actividades
       .filter(act => {
         if (act.completada) return false;
-
-        // Si la fecha es anterior a hoy, no la incluimos
-        if (act.fecha < fechaHoyStr) return false;
-
-        // Si es hoy, comparamos la hora
-        if (act.fecha === fechaHoyStr) {
-          const [horas, minutos] = act.horaInicio.split(':').map(Number);
-          return horas > horaActual || 
-                (horas === horaActual && minutos > minutosActual);
-        }
-
-        // Si es una fecha futura, la incluimos
-        return true;
+        
+        // Mostrar actividades desde hoy en adelante
+        return act.fecha >= fechaHoy;
       })
       .sort((a, b) => {
         const fechaA = new Date(a.fecha);
@@ -150,82 +160,87 @@ export default function CalendarioHorario() {
   };
 
   const actividadesPorFecha = (fecha) => {
-  const fechaStr = fecha.toISOString().split('T')[0];
-  return actividades.filter(act => act.fecha === fechaStr);
-};
-
-// Función para detectar si dos actividades se solapan
-const seSuperponen = (act1, act2) => {
-  const [h1i, m1i] = act1.horaInicio.split(':').map(Number);
-  const [h1f, m1f] = act1.horaFin.split(':').map(Number);
-  const [h2i, m2i] = act2.horaInicio.split(':').map(Number);
-  const [h2f, m2f] = act2.horaFin.split(':').map(Number);
-  
-  const inicio1 = h1i * 60 + m1i;
-  const fin1 = h1f * 60 + m1f;
-  const inicio2 = h2i * 60 + m2i;
-  const fin2 = h2f * 60 + m2f;
-  
-  return inicio1 < fin2 && inicio2 < fin1;
-};
-
-// Calcular columnas para actividades que se solapan
-const calcularColumnas = (acts) => {
-  const columnas = [];
-  
-  acts.forEach(act => {
-    let columnaEncontrada = false;
+    // Ajustar la fecha para zona horaria local y obtener solo la parte de fecha
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const fechaStr = `${year}-${month}-${day}`;
     
-    // Buscar una columna donde no haya conflicto
-    for (let i = 0; i < columnas.length; i++) {
-      const hayConflicto = columnas[i].some(a => seSuperponen(a, act));
-      if (!hayConflicto) {
-        columnas[i].push(act);
-        columnaEncontrada = true;
-        break;
+    return actividades.filter(act => act.fecha === fechaStr);
+  };
+
+  // Función para detectar si dos actividades se solapan
+  const seSuperponen = (act1, act2) => {
+    const [h1i, m1i] = act1.horaInicio.split(':').map(Number);
+    const [h1f, m1f] = act1.horaFin.split(':').map(Number);
+    const [h2i, m2i] = act2.horaInicio.split(':').map(Number);
+    const [h2f, m2f] = act2.horaFin.split(':').map(Number);
+    
+    const inicio1 = h1i * 60 + m1i;
+    const fin1 = h1f * 60 + m1f;
+    const inicio2 = h2i * 60 + m2i;
+    const fin2 = h2f * 60 + m2f;
+    
+    return inicio1 < fin2 && inicio2 < fin1;
+  };
+
+  // Calcular columnas para actividades que se solapan
+  const calcularColumnas = (acts) => {
+    const columnas = [];
+    
+    acts.forEach(act => {
+      let columnaEncontrada = false;
+      
+      // Buscar una columna donde no haya conflicto
+      for (let i = 0; i < columnas.length; i++) {
+        const hayConflicto = columnas[i].some(a => seSuperponen(a, act));
+        if (!hayConflicto) {
+          columnas[i].push(act);
+          columnaEncontrada = true;
+          break;
+        }
       }
-    }
-    
-    // Si no encontró columna, crear una nueva
-    if (!columnaEncontrada) {
-      columnas.push([act]);
-    }
-  });
-  
-  // Asignar índice de columna y total de columnas a cada actividad
-  const resultado = {};
-  columnas.forEach((col, colIndex) => {
-    col.forEach(act => {
-      resultado[act.id] = {
-        columna: colIndex,
-        totalColumnas: columnas.length
-      };
+      
+      // Si no encontró columna, crear una nueva
+      if (!columnaEncontrada) {
+        columnas.push([act]);
+      }
     });
-  });
-  
-  return resultado;
-};
+    
+    // Asignar índice de columna y total de columnas a cada actividad
+    const resultado = {};
+    columnas.forEach((col, colIndex) => {
+      col.forEach(act => {
+        resultado[act.id] = {
+          columna: colIndex,
+          totalColumnas: columnas.length
+        };
+      });
+    });
+    
+    return resultado;
+  };
 
   const abrirModal = (actividad = null, fecha = null, hora = null) => {
-  if (actividad) {
-    setActividadEditando(actividad);
-    setFormData(actividad);
-  } else {
-    setActividadEditando(null);
-    const fechaStr = fecha ? fecha.toISOString().split('T')[0] : '';
-    setFormData({
-      usuario: '', // Campo vacío para que el usuario lo llene
-      titulo: '',
-      descripcion: '',
-      fecha: fechaStr,
-      horaInicio: hora || '08:00',
-      horaFin: hora ? `${parseInt(hora.split(':')[0]) + 1}:00` : '09:00',
-      categoria: 'trabajo',
-      completada: false
-    });
-  }
-  setMostrarModal(true);
-};
+    if (actividad) {
+      setActividadEditando(actividad);
+      setFormData(actividad);
+    } else {
+      setActividadEditando(null);
+      const fechaStr = fecha ? fecha.toISOString().split('T')[0] : '';
+      setFormData({
+        usuario: '', // Campo vacío para que el usuario lo llene
+        titulo: '',
+        descripcion: '',
+        fecha: fechaStr,
+        horaInicio: hora || '08:00',
+        horaFin: hora ? `${parseInt(hora.split(':')[0]) + 1}:00` : '09:00',
+        categoria: 'trabajo',
+        completada: false
+      });
+    }
+    setMostrarModal(true);
+  };
 
   const toggleCompletada = async (id) => {
     const act = actividades.find(a => a.id === id);
@@ -237,26 +252,26 @@ const calcularColumnas = (acts) => {
   };
 
   const guardarActividad = async () => {
-  if (!formData.usuario || !formData.titulo || !formData.fecha) {
-    alert('Por favor completa: Usuario, Título y Fecha');
-    return;
-  }
-  try {
-    if (actividadEditando) {
-      await actualizarActividad(actividadEditando.id, formData);
-      setActividades(actividades.map(act => 
-        act.id === actividadEditando.id ? { ...formData, id: act.id } : act
-      ));
-    } else {
-      const nueva = await crearActividad(formData, formData.usuario);
-      setActividades([...actividades, nueva]);
+    if (!formData.usuario || !formData.titulo || !formData.fecha) {
+      alert('Por favor completa: Usuario, Título y Fecha');
+      return;
     }
-    setMostrarModal(false);
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al guardar. Intenta nuevamente.');
-  }
-};
+    try {
+      if (actividadEditando) {
+        await actualizarActividad(actividadEditando.id, formData);
+        setActividades(actividades.map(act => 
+          act.id === actividadEditando.id ? { ...formData, id: act.id } : act
+        ));
+      } else {
+        const nueva = await crearActividad(formData, formData.usuario);
+        setActividades([...actividades, nueva]);
+      }
+      setMostrarModal(false);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al guardar. Intenta nuevamente.');
+    }
+  };
 
   const eliminarActividadHandler = async (id) => {
     try {
@@ -300,8 +315,8 @@ const calcularColumnas = (acts) => {
                 <Calendar className="text-white" size={28} />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-700 to-blue-800 bg-clip-text text-transparent">
-  Mi Calendario Personal
-</h1>
+                Mi Calendario Personal
+              </h1>
             </div>
             
             <div className="flex items-center gap-2">
@@ -535,7 +550,6 @@ const calcularColumnas = (acts) => {
               </p>
             </div>
 
-
             {/* Agenda de Hoy */}
             <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl shadow-lg p-4 border-2 border-sky-300">
               <h3 className="text-sm font-bold text-sky-700 mb-3 flex items-center gap-2">
@@ -580,21 +594,21 @@ const calcularColumnas = (acts) => {
               </h3>
               <div className="space-y-2">
                 {proximos.length > 0 ? proximos.map(act => {
-                  // eslint-disable-next-line no-unused-vars
                   const cat = CATEGORIAS.find(c => c.id === act.categoria);
                   return (
                     <div key={act.id} className={`bg-gradient-to-r from-sky-50 to-white rounded-lg p-2 border ${cat.color} shadow-md hover:shadow-lg transition-all`}>
                       <p className="text-sm font-semibold text-sky-900 truncate text-center">{act.titulo}</p>
                       <p className="text-xs text-sky-700/70 text-center">
                         {(() => {
-                          const fecha = new Date(act.fecha + 'T00:00:00');
-                          return fecha.toLocaleDateString('es-ES', {
+                          const fecha = new Date(act.fecha + 'T00:00:00-05:00');
+                          return fecha.toLocaleDateString('es-PE', {
                             weekday: 'short',
                             year: 'numeric',
                             month: 'short',
-                            day: 'numeric'
+                            day: 'numeric',
+                            timeZone: 'America/Lima'
                           });
-                        })()} • {act.horaInicio}
+                        })()} • {act.horaInicio} (PE)
                       </p>
                     </div>
                   );
@@ -616,19 +630,19 @@ const calcularColumnas = (acts) => {
               </h3>
               
               <div className="space-y-3">
-  <div>
-    <label className="block text-sm font-bold text-gray-700 mb-1">Usuario*</label>
-    <input
-      type="text"
-      value={formData.usuario}
-      onChange={(e) => setFormData({...formData, usuario: e.target.value})}
-      className="w-full border-2 border-purple-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-      placeholder="Tu nombre (ej: Miguel)"
-    />
-  </div>
-  
-  <div>
-    <label className="block text-sm font-bold text-gray-700 mb-1">Título*</label>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Usuario*</label>
+                  <input
+                    type="text"
+                    value={formData.usuario}
+                    onChange={(e) => setFormData({...formData, usuario: e.target.value})}
+                    className="w-full border-2 border-purple-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    placeholder="Tu nombre (ej: Miguel)"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Título*</label>
                   <input
                     type="text"
                     value={formData.titulo}
